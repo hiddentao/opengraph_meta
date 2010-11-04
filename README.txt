@@ -19,7 +19,7 @@ The latest code for this module is always available at http://github.com/hiddent
 2. Installation
 ---------------
 
-Add the following html tag attribute in the top of your page.tpl.php file (and any page.tpl.php derivatives) located in your theme directory:
+Add the following XML namespace attribute to the HTML tag at the top of your page.tpl.php file:
 
 xmlns:og="http://opengraphprotocol.org/schema/"
 
