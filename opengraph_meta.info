@@ -1,0 +1,6 @@
+; $Id$
+
+name = Open Graph meta tags
+description = Adds Open Graph meta tags to node pages for better social network sharing (e.g. http://developers.facebook.com/docs/share)
+package = Open Graph
+core = 6.x

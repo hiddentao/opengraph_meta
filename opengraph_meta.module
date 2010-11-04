@@ -1,0 +1,126 @@
+<?php
+// $Id$
+
+require_once('opengraph_meta.common.inc');
+
+
+/**
+ * Implements hook_perm().
+ */
+function opengraph_meta_perm() {
+  return array(OPENGRAPH_META_PERM_ADMIN, OPENGRAPH_META_PERM_EDIT);
+}
+
+
+/**
+ * Implementation of hook_menu.
+ */
+function opengraph_meta_menu() {
+  $admin_access = array(OPENGRAPH_META_PERM_ADMIN);
+
+  $items['admin/content/opengraph_meta'] = array(
+    'title' => 'Open Graph meta tags',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('opengraph_meta_settings_form'),
+    'description' => 'Configure meta tags for Facebook sharing.',
+    'access arguments' => $admin_access,
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'opengraph_meta.admin.inc',
+  );
+  $items['admin/content/opengraph_meta/settings'] = array(
+    'title' => 'Settings',
+    'access arguments' => $admin_access,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -1,
+    'file' => 'opengraph_meta.admin.inc',
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implementation of hook_form_alter.
+ */
+function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
+  // if editing a node
+  if ('node_form' == stristr($form_id, 'node_form')) {
+
+    $node = $form['#node'];
+    // check that tags are enabled for this node type and that user has permission to edit them
+    if (!OpenGraphMeta::tags_are_enabled_for_content_type($node->type) || !user_access(OPENGRAPH_META_PERM_EDIT))
+      return;
+
+    // add meta tags editing for making it easier to share on Facebook
+    $form['opengraph_meta'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Open Graph meta tags (e.g. for Facebook sharing)'),
+      '#description' => t('Here you can specify the exact title and summary text for this node as it will appear when shared on e.g. Facebook'),
+      '#tree' => TRUE,
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#weight' => 100,
+      OpenGraphMeta::TITLE => array(
+        '#title' => t('Title'),
+        '#type' => 'textfield',
+        '#maxlength' => 255,
+        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::TITLE] : '',
+        '#description' => t('The title of the node (if left unset then the node title will be used).'),
+      ),
+      OpenGraphMeta::DESCRIPTION => array(
+        '#title' => t('Summary'),
+        '#type' => 'textarea',
+        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::DESCRIPTION] : '',
+        '#description' => t('The summary of the node. If left unset then the first 200 characters of the node body text will be used.'),
+      ),
+    );
+
+    // if we have images in this node then show thumbnail selector
+    $image_paths = OpenGraphMeta::harvest_images_from_node($node);
+    if (!empty($image_paths)) {
+      $image_selector_options = array();
+      foreach ($image_paths as $path) {
+        $abs_path = url($path);
+        $image_selector_options[$path] = "<img src=\"$abs_path\" alt=\"$path\" title=\"$path\" width=\"32px\" height=\"32px\" />";
+      }
+      $form['opengraph_meta'][OpenGraphMeta::IMAGE] = array(
+        '#title' => t('Thumbnail image'),
+        '#type' => 'radios',
+        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::IMAGE] : '',
+        '#description' => t('The thumbnail image that will get shown in e.g. a Facebook preview. If left unset then then the first available image will be used.'),
+        '#options' => $image_selector_options,
+      );
+    }
+  }
+}
+
+
+/**
+ * Implements hook_nodeapi().
+ */
+function opengraph_meta_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
+  switch ($op) {
+    case 'delete':
+      OpenGraphMeta::delete_node_data($node->nid);
+      break;
+    case 'insert':
+    case 'update':
+      if (!empty($node->opengraph_meta)) {
+        OpenGraphMeta::save_node_data($node->nid, $node->opengraph_meta);
+      }
+      break;
+    case 'load':
+      if (NODE_BUILD_NORMAL == $node->build_mode && OpenGraphMeta::tags_are_enabled_for_content_type($node->type)) {
+        return array('opengraph_meta' => OpenGraphMeta::load_node_data($node));
+      }
+      break;
+    case 'view':
+      // only show meta tags if viewing full node as a page
+      if (!$teaser && $page && !empty($node->opengraph_meta))
+        OpenGraphMeta::render_data($node, $node->opengraph_meta);
+  }
+}
+
+
+
+

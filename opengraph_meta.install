@@ -1,0 +1,48 @@
+<?php
+// $Id$
+
+require_once('opengraph_meta.common.inc');
+
+
+function opengraph_meta_schema(){
+    $schema[OPENGRAPH_META_TABLE] = array(
+      'description' => 'Stores Open Graph meta tag info useful for when sharing nodes on social networking sites, e.g. Facebook.',
+      'fields' => array(
+        'nid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ),
+        OpenGraphMeta::TITLE => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => ''
+        ),
+        OpenGraphMeta::DESCRIPTION => array(
+          'type' => 'text',
+          'not null' => TRUE,
+          'size' => 'big',
+          'default' => '',
+        ),
+        OpenGraphMeta::IMAGE => array(
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),
+      ),
+      'primary key' => array('nid'),
+    );
+
+    return $schema;
+}
+
+function opengraph_meta_install() {
+    drupal_install_schema('opengraph_meta');
+}
+
+function opengraph_meta_uninstall() {
+    drupal_uninstall_schema('opengraph_meta');
+}
+
