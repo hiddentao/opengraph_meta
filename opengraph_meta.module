@@ -4,6 +4,11 @@
 require_once('opengraph_meta.common.inc');
 
 
+define('OPENGRAPH_META_MENU_ADMIN','admin/content/opengraph_meta');
+define('OPENGRAPH_META_MENU_ADMIN_SETTINGS',OPENGRAPH_META_MENU_ADMIN.'/settings');
+
+
+
 /**
  * Implements hook_perm().
  */
@@ -18,7 +23,7 @@ function opengraph_meta_perm() {
 function opengraph_meta_menu() {
   $admin_access = array(OPENGRAPH_META_PERM_ADMIN);
 
-  $items['admin/content/opengraph_meta'] = array(
+  $items[OPENGRAPH_META_MENU_ADMIN] = array(
     'title' => 'Open Graph meta tags',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('opengraph_meta_settings_form'),
@@ -27,7 +32,7 @@ function opengraph_meta_menu() {
     'type' => MENU_NORMAL_ITEM,
     'file' => 'opengraph_meta.admin.inc',
   );
-  $items['admin/content/opengraph_meta/settings'] = array(
+  $items[OPENGRAPH_META_MENU_ADMIN_SETTINGS] = array(
     'title' => 'Settings',
     'access arguments' => $admin_access,
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -65,13 +70,20 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
         '#type' => 'textfield',
         '#maxlength' => 255,
         '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::TITLE] : '',
-        '#description' => t('The title of the node (if left unset then the node title will be used).'),
+        '#description' => t('The title of the node. If left blank then the node title will be used).'),
       ),
       OpenGraphMeta::DESCRIPTION => array(
         '#title' => t('Summary'),
         '#type' => 'textarea',
         '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::DESCRIPTION] : '',
-        '#description' => t('The summary of the node. If left unset then the first 200 characters of the node body text will be used.'),
+        '#description' => t('The summary of the node. If left blank then the first 200 characters of the node body text will be used.'),
+      ),
+      OpenGraphMeta::TYPE => array(
+        '#title' => t('Type'),
+        '#type' => 'select',
+        '#options' => OpenGraphMeta::get_all_og_types_for_select_field(),
+        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::TYPE] : '',
+        '#description' => t('The type of the node. if left unset then the value set for the %type content type will be used: "@setting"',array('%type' => $node->type, '@setting' => variable_get(OPENGRAPH_META_VAR_CONTENT_TYPE_.$node->type, ''))),
       ),
     );
 

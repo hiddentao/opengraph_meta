@@ -25,4 +25,4 @@ xmlns:og="http://opengraphprotocol.org/schema/"
 
 For example:
 
-<html ... xmlns:og="http://opengraphprotocol.org/schema/" ... >
+<html xmlns:og="http://opengraphprotocol.org/schema/">

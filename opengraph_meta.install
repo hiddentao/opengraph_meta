@@ -3,6 +3,21 @@
 
 require_once('opengraph_meta.common.inc');
 
+/**
+ * Add the 'type' meta tag field to the meta tags table.
+ * @see http://drupal.org/node/975350
+ */
+function opengraph_meta_update_6001(){
+  $result = array();
+  db_add_field($result, OPENGRAPH_META_TABLE, OpenGraphMeta::TYPE, array(
+    'type' => 'varchar',
+    'length' => '255',
+    'not null' => TRUE,
+    'default' => '',
+  ));
+  return $result;         
+}
+
 
 function opengraph_meta_schema(){
     $schema[OPENGRAPH_META_TABLE] = array(
@@ -31,6 +46,12 @@ function opengraph_meta_schema(){
           'not null' => TRUE,
           'default' => '',
         ),
+        OpenGraphMeta::TYPE => array(
+          'type' => 'varchar',
+          'length' => '255',
+          'not null' => TRUE,
+          'default' => '',
+        ),
       ),
       'primary key' => array('nid'),
     );
@@ -44,5 +65,11 @@ function opengraph_meta_install() {
 
 function opengraph_meta_uninstall() {
     drupal_uninstall_schema('opengraph_meta');
+    variable_del(OPENGRAPH_META_VAR_CONTENT_TYPES_ENABLED);
+    variable_del(OPENGRAPH_META_VAR_SITE_NAME);
+    $types = node_get_types();
+    foreach ($types as $id => $d) {
+      variable_del(OPENGRAPH_META_VAR_CONTENT_TYPE_.$id);
+    }
 }
 
