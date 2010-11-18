@@ -44,7 +44,7 @@ function opengraph_meta_settings_form() {
     $form['defaults']['types'][OPENGRAPH_META_VAR_CONTENT_TYPE_.$id] = array(
       '#title' => $data->name,
       '#type' => 'select',
-      '#options' => OpenGraphMeta::get_all_og_types_for_select_field(),
+      '#options' => OpenGraphMeta::instance()->get_all_og_types_for_select_field(),
       '#description' => t('The value for the %ogtype meta tag for nodes of type %type. If left unset then the %ogtype tag will not get output for this content type.',array('%ogtype' => 'og:type', '%type' => $id)),
       '#default_value' => variable_get(OPENGRAPH_META_VAR_CONTENT_TYPE_.$id, ''),
     );

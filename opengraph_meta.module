@@ -53,7 +53,7 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
 
     $node = $form['#node'];
     // check that tags are enabled for this node type and that user has permission to edit them
-    if (!OpenGraphMeta::tags_are_enabled_for_content_type($node->type) || !user_access(OPENGRAPH_META_PERM_EDIT))
+    if (!OpenGraphMeta::instance()->tags_are_enabled_for_content_type($node->type) || !user_access(OPENGRAPH_META_PERM_EDIT))
       return;
 
     // add meta tags editing for making it easier to share on Facebook
@@ -81,14 +81,14 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
       OpenGraphMeta::TYPE => array(
         '#title' => t('Type'),
         '#type' => 'select',
-        '#options' => OpenGraphMeta::get_all_og_types_for_select_field(),
+        '#options' => OpenGraphMeta::instance()->get_all_og_types_for_select_field(),
         '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::TYPE] : '',
         '#description' => t('The type of the node. if left unset then the value set for the %type content type will be used: "@setting"',array('%type' => $node->type, '@setting' => variable_get(OPENGRAPH_META_VAR_CONTENT_TYPE_.$node->type, ''))),
       ),
     );
 
     // if we have images in this node then show thumbnail selector
-    $image_paths = OpenGraphMeta::harvest_images_from_node($node);
+    $image_paths = OpenGraphMeta::instance()->harvest_images_from_node($node);
     if (!empty($image_paths)) {
       $image_selector_options = array();
       foreach ($image_paths as $path) {
@@ -113,23 +113,23 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
 function opengraph_meta_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
   switch ($op) {
     case 'delete':
-      OpenGraphMeta::delete_node_data($node->nid);
+      OpenGraphMeta::instance()->delete_node_data($node->nid);
       break;
     case 'insert':
     case 'update':
       if (!empty($node->opengraph_meta)) {
-        OpenGraphMeta::save_node_data($node->nid, $node->opengraph_meta);
+        OpenGraphMeta::instance()->save_node_data($node->nid, $node->opengraph_meta);
       }
       break;
     case 'load':
-      if (NODE_BUILD_NORMAL == $node->build_mode && OpenGraphMeta::tags_are_enabled_for_content_type($node->type)) {
-        return array('opengraph_meta' => OpenGraphMeta::load_node_data($node));
+      if (NODE_BUILD_NORMAL == $node->build_mode && OpenGraphMeta::instance()->tags_are_enabled_for_content_type($node->type)) {
+        return array('opengraph_meta' => OpenGraphMeta::instance()->load_node_data($node));
       }
       break;
     case 'view':
       // only show meta tags if viewing full node as a page
       if (!$teaser && $page && !empty($node->opengraph_meta))
-        OpenGraphMeta::render_data($node, $node->opengraph_meta);
+        OpenGraphMeta::instance()->render_data($node, $node->opengraph_meta);
   }
 }
 

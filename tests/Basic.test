@@ -1,0 +1,199 @@
+<?php
+// $Id
+
+module_load_include('inc','opengraph_meta','opengraph_meta.common');
+
+
+/**
+ * Tests for Open Graph meta tags.
+ */
+class OGMTBasicTest extends DrupalTestCase {
+
+  private $ogm = NULL;
+  private $ogm_objects_backup = NULL;
+
+  private $ogm_data = NULL;
+  private $ogm_settings = NULL;
+  private $ogm_render = NULL;
+
+  public static function getInfo() {
+    return array(
+      'name' => t('Basic unit tests'),
+      'description' => t('Test basic functionality.'),
+      'group' => t('Open Graph meta tags'),
+    );
+  }
+
+  function setUp() {
+    $this->ogm = OpenGraphMeta::instance();
+    $this->ogm_data = new OGMTestData();
+    $this->ogm_settings = new OGMTestSettings();
+    $this->ogm_render = new OGMTestRender();
+    $this->ogm_objects_backup = $this->ogm->__get_objects();
+    $this->ogm->__set_objects($this->ogm_data, $this->ogm_settings, $this->ogm_render);
+  }
+
+  function tearDown() {
+    $instance = OpenGraphMeta::instance();
+    call_user_func_array(array(&$instance, '__set_objects'), $this->ogm_objects_backup);
+  }
+
+  function testExtractImagesFromNode() {
+    $node = new stdClass();
+    $node->body = 'bla bla bla <a href="this is">...<img src="body.jpg">...<img> <img src=""></p>';  // test broken HTML
+    $node->field_image = array('filemime' => 'image', 'filepath' => 'field1.jpg');
+    $node->field_no_image = array('filemime' => 'pdf', 'filepath' => 'field2.jpg');
+    $node->sub_field_image = array('child' => array('filemime' => 'image', 'filepath' => 'subfield.jpg'));
+    $ret = $this->ogm->harvest_images_from_node($node);
+    $this->assertEqual(serialize(array('field1.jpg','subfield.jpg','body.jpg')), serialize($ret), t('Extract images from node fields and body content'));
+  }
+  
+  function testMetaTagsEnabledForContentType() {
+    // turn on all content types (no variable set)
+    $this->ogm_settings->vars = array();
+    $this->assertTrue($this->ogm->tags_are_enabled_for_content_type('type1'));
+    // turn on all content types (variable set)
+    $this->ogm_settings->set(OPENGRAPH_META_VAR_CONTENT_TYPES_ENABLED, array());
+    $this->assertTrue($this->ogm->tags_are_enabled_for_content_type('type1'));
+    // turn on specific content type
+    $this->ogm_settings->set(OPENGRAPH_META_VAR_CONTENT_TYPES_ENABLED, array('type1' => 1,'type2' => 0));
+    $this->assertTrue($this->ogm->tags_are_enabled_for_content_type('type1'));
+    $this->assertFalse($this->ogm->tags_are_enabled_for_content_type('type2'));
+  }
+
+  function testSaveTagsForNode() {
+    // fresh save
+    $this->ogm_data->tags = array();
+    $data = array(
+      OpenGraphMeta::TITLE => 'a',
+      OpenGraphMeta::DESCRIPTION => 'b',
+      OpenGraphMeta::IMAGE => 'c',
+      OpenGraphMeta::TYPE => 'd',
+    );
+    $this->ogm->save_node_data(1,$data);
+
+    // check that saved ok
+    $this->_check_saved_tags_for_node(1, $data);
+
+    // overwrite
+    $data[OpenGraphMeta::TITLE] = 'a2';
+    $data[OpenGraphMeta::DESCRIPTION] = 'b2';
+    $data[OpenGraphMeta::IMAGE] = 'c2';
+    $data[OpenGraphMeta::TYPE] = 'd2';
+    $this->ogm->save_node_data(1,$data);
+
+    // check that saved ok
+    $this->_check_saved_tags_for_node(1, $data);
+  }
+
+
+  private function _check_saved_tags_for_node($nid, array $expected) {
+    $ret = $this->ogm_data->load_tags($nid);
+    $this->assertEqual($ret->nid,$nid);
+    foreach ($expected as $key => $val) {
+      $this->assertEqual($ret->$key, $val);
+    }
+  }
+
+
+  function testNodeOverridesEmptyValues() {
+    // empty node values
+    $node = $this->_build_test_node(1);
+    $this->ogm_settings->set(OPENGRAPH_META_VAR_CONTENT_TYPE_.'type1','');
+    $this->ogm->save_node_data(1, array(
+      OpenGraphMeta::TITLE => '',
+      OpenGraphMeta::DESCRIPTION => '',
+      OpenGraphMeta::IMAGE => '',
+      OpenGraphMeta::TYPE => '',
+    ));
+    $this->ogm->render_data($node, $this->ogm->load_node_data($node));
+    $this->_check_rendered_meta_tags(array(
+      'og:'.OpenGraphMeta::TITLE => $node->title,
+      'og:'.OpenGraphMeta::DESCRIPTION => mb_substr(strip_tags($node->body),0,200),
+      'og:'.OpenGraphMeta::SITE_NAME => 'Drupal',
+    ));
+
+    // non-empty values but using default type value
+    $this->ogm_settings->set(OPENGRAPH_META_VAR_CONTENT_TYPE_.'type1','product');
+    $this->ogm_settings->set(OPENGRAPH_META_VAR_SITE_NAME, 'TestSite');
+    $this->ogm->save_node_data(1, array(
+      OpenGraphMeta::TITLE => 'abc',
+      OpenGraphMeta::DESCRIPTION => 'def',
+      OpenGraphMeta::IMAGE => 'test.jpg',
+      OpenGraphMeta::TYPE => '',
+    ));
+    $this->ogm->render_data($node, $this->ogm->load_node_data($node));
+    $this->_check_rendered_meta_tags(array(
+      'og:'.OpenGraphMeta::TITLE => 'abc',
+      'og:'.OpenGraphMeta::DESCRIPTION => 'def',
+      'og:'.OpenGraphMeta::IMAGE => url('test.jpg', array('absolute' => TRUE)),      
+      'og:'.OpenGraphMeta::TYPE => 'product',      
+      'og:'.OpenGraphMeta::SITE_NAME => 'TestSite',
+    ));
+
+    // non-empty values including type override
+    $this->ogm_settings->set(OPENGRAPH_META_VAR_CONTENT_TYPE_.'type1','generic');
+    $this->ogm_settings->set(OPENGRAPH_META_VAR_SITE_NAME, 'TestSite2');
+    $this->ogm->save_node_data(1, array(
+      OpenGraphMeta::TITLE => 'abc2',
+      OpenGraphMeta::DESCRIPTION => 'def2',
+      OpenGraphMeta::IMAGE => 'test2.jpg',
+      OpenGraphMeta::TYPE => 'pixies',
+    ));
+    $this->ogm->render_data($node, $this->ogm->load_node_data($node));
+    $this->_check_rendered_meta_tags(array(
+      'og:'.OpenGraphMeta::TITLE => 'abc2',
+      'og:'.OpenGraphMeta::DESCRIPTION => 'def2',
+      'og:'.OpenGraphMeta::IMAGE => url('test2.jpg', array('absolute' => TRUE)),
+      'og:'.OpenGraphMeta::TYPE => 'pixies',
+      'og:'.OpenGraphMeta::SITE_NAME => 'TestSite2',
+    ));
+  }
+
+
+  private function _build_test_node($nid) {
+    $node = new stdClass();
+    $node->nid = $nid;
+    $node->title = 'test title';
+    $node->body = str_pad('',255,'ab');
+    $node->type = 'type1';
+    return $node;
+  }
+
+  private function _check_rendered_meta_tags(array $expected) {
+    $diff = array_diff_assoc($this->ogm_render->meta, $expected);
+    $this->assertTrue(empty($diff));
+  }
+}
+
+
+class OGMTestSettings implements OGMSettings {
+  public $vars = array();
+  public function get($name, $default) {
+    return isset($this->vars[$name]) ? $this->vars[$name] : $default;
+  }
+  public function set($name, $value) {
+    $this->vars[$name] = $value;
+  }
+}
+
+class OGMTestRender implements OGMRender {
+  public $meta = array();
+  public function add_meta($name, $content) {
+    $this->meta[$name] = $content;
+  }
+}
+
+class OGMTestData implements OGMData {
+  public $tags = array();
+  public function load_tags($nid) {
+    return (isset($this->tags[$nid])) ? $this->tags[$nid] : FALSE;
+  }
+  public function delete_tags($nid) {
+    if (isset($this->tags[$nid]))
+      unset($this->tags[$nid]);
+  }
+  public function update_tags($field_data_including_nid, $primary_key = array()) {
+    $this->tags[$field_data_including_nid->nid] = $field_data_including_nid;
+  }
+}
