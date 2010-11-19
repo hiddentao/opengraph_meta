@@ -196,6 +196,7 @@ class OpenGraphMeta {
 
     // extract all images from body content
     if (!empty($node->body)) {
+      libxml_use_internal_errors(TRUE); // turn off libxml errors for now
       $doc = new DOMDocument();
       $doc->loadHTML($node->body);
       $list = $doc->getElementsByTagName('img');
@@ -207,6 +208,7 @@ class OpenGraphMeta {
             $ret[] = $attrval;
         }
       }
+      libxml_use_internal_errors(FALSE); // turn libxml errors back on
     }
 
     return $ret;
