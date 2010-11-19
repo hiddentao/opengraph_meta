@@ -122,13 +122,13 @@ function opengraph_meta_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
       }
       break;
     case 'load':
-      if (NODE_BUILD_NORMAL == $node->build_mode && OpenGraphMeta::instance()->tags_are_enabled_for_content_type($node->type)) {
+      if (OpenGraphMeta::instance()->tags_are_enabled_for_content_type($node->type)) {
         return array('opengraph_meta' => OpenGraphMeta::instance()->load_node_data($node));
       }
       break;
     case 'view':
       // only show meta tags if viewing full node as a page
-      if (!$teaser && $page && !empty($node->opengraph_meta))
+      if (NODE_BUILD_NORMAL == $node->build_mode && !$teaser && $page && !empty($node->opengraph_meta))
         OpenGraphMeta::instance()->render_data($node, $node->opengraph_meta);
   }
 }
