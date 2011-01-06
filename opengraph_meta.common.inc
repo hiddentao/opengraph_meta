@@ -177,6 +177,9 @@ class OpenGraphMeta {
           case self::IMAGE:
             $v = url($v, array('absolute' => TRUE));
             break;
+          case self::DESCRIPTION:
+            $v = htmlspecialchars(htmlspecialchars_decode($v));
+            break;
         }
         $this->render_obj->add_meta('og:'.$field, $v);
       } // if value available for field
