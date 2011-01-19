@@ -70,7 +70,7 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
         '#type' => 'textfield',
         '#maxlength' => 255,
         '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[OpenGraphMeta::TITLE] : '',
-        '#description' => t('The title of the node. If left blank then the node title will be used).'),
+        '#description' => t('The title of the node. If left blank then the node title will be used.'),
       ),
       OpenGraphMeta::DESCRIPTION => array(
         '#title' => t('Summary'),
@@ -97,24 +97,7 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
       '#collapsed' => TRUE,
       '#weight' => 100,
     );
-    $fields = array(
-      OpenGraphMeta::LATITUDE => array('Latitude', 'Geographical latitude as a decimal number.'),
-      OpenGraphMeta::LONGITUDE => array('Longitude', 'Geographical longitude as a decimal number.'),
-      OpenGraphMeta::STREET_ADDRESS => array('Street address', 'Local street address.'),
-      OpenGraphMeta::LOCALITY => array('Locality', 'E.g. town or city.'),
-      OpenGraphMeta::REGION => array('Region', 'Region within country, e.g. a county.'),
-      OpenGraphMeta::POST_CODE => array('Post code', 'Postal code.'),
-      OpenGraphMeta::COUNTRY_NAME => array('Country', 'Full country name.'),
-    );
-    foreach ($fields as $f => $i) {
-      $form['opengraph_meta']['location'][$f] = array(
-        '#title' => t($i[0]),
-        '#type' => 'textfield',
-        '#maxlength' => 255,
-        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[$f] : '',
-        '#description' => t($i[1]),
-      );
-    }
+    $form['opengraph_meta']['location'] = array_merge($form['opengraph_meta']['location'], _opengraph_meta_location_form_fields($node));
 
     // Contact stuff
     $form['opengraph_meta']['contact'] = array(
@@ -126,20 +109,7 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
       '#collapsed' => TRUE,
       '#weight' => 100,
     );
-    $fields = array(
-      OpenGraphMeta::EMAIL => array('Email', ''),
-      OpenGraphMeta::PHONE_NUMBER => array('Phone number', ''),
-      OpenGraphMeta::FAX_NUMBER => array('Fax number', ''),
-    );
-    foreach ($fields as $f => $i) {
-      $form['opengraph_meta']['contact'][$f] = array(
-        '#title' => t($i[0]),
-        '#type' => 'textfield',
-        '#maxlength' => 255,
-        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[$f] : '',
-        '#description' => t($i[1]),
-      );
-    }
+    $form['opengraph_meta']['contact'] = array_merge($form['opengraph_meta']['contact'], _opengraph_meta_contact_form_fields($node));
 
     // if we have images in this node then show thumbnail selector
     $image_paths = OpenGraphMeta::instance()->harvest_images_from_node($node);
@@ -159,6 +129,51 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
     }
   }
 }
+
+
+function _opengraph_meta_location_form_fields($node = NULL) {
+  $ret = array();
+  $fields = array(
+    OpenGraphMeta::LATITUDE => array('Latitude', 'Geographical latitude as a decimal number.'),
+    OpenGraphMeta::LONGITUDE => array('Longitude', 'Geographical longitude as a decimal number.'),
+    OpenGraphMeta::STREET_ADDRESS => array('Street address', 'Local street address.'),
+    OpenGraphMeta::LOCALITY => array('Locality', 'E.g. town or city.'),
+    OpenGraphMeta::REGION => array('Region', 'Region within country, e.g. a county.'),
+    OpenGraphMeta::POST_CODE => array('Post code', 'Postal code.'),
+    OpenGraphMeta::COUNTRY_NAME => array('Country', 'Full country name.'),
+  );
+  foreach ($fields as $f => $i) {
+    $ret[$f] = array(
+      '#title' => t($i[0]),
+      '#type' => 'textfield',
+      '#maxlength' => 255,
+      '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[$f] : '',
+      '#description' => t($i[1]),
+    );
+  }
+  return $ret;
+}
+
+
+function _opengraph_meta_contact_form_fields($node = NULL) {
+  $ret = array();
+  $fields = array(
+    OpenGraphMeta::EMAIL => array('Email', ''),
+    OpenGraphMeta::PHONE_NUMBER => array('Phone number', ''),
+    OpenGraphMeta::FAX_NUMBER => array('Fax number', ''),
+  );
+  foreach ($fields as $f => $i) {
+    $ret[$f] = array(
+      '#title' => t($i[0]),
+      '#type' => 'textfield',
+      '#maxlength' => 255,
+      '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[$f] : '',
+      '#description' => t($i[1]),
+    );
+  }
+  return $ret;
+}
+
 
 
 

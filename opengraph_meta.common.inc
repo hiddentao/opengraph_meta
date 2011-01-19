@@ -10,6 +10,7 @@ define('OPENGRAPH_META_VAR_CONTENT_TYPES_ENABLED', 'opengraph_meta_types_enabled
 define('OPENGRAPH_META_VAR_CONTENT_TYPE_', 'opengraph_meta_type_');
 define('OPENGRAPH_META_VAR_SITE_NAME', 'opengraph_meta_site_name');
 
+define('OPENGRAPH_META_VAR_OPTIONAL_TAGS', 'opengraph_meta_optional_tags');
 
 
 
@@ -84,6 +85,14 @@ class OpenGraphMeta {
         self::FAX_NUMBER => '',
       );
     }
+
+    if (!empty($node)) {
+      $optionals = variable_get(OPENGRAPH_META_VAR_OPTIONAL_TAGS, array());
+      foreach ($defaults as $f => &$i) {
+        $i = !empty($optionals[$f]) ? $optionals[$f] : $i;
+      }
+    }
+
     return $defaults;
   }
 

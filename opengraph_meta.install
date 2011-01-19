@@ -90,6 +90,7 @@ function opengraph_meta_uninstall() {
     drupal_uninstall_schema('opengraph_meta');
     variable_del(OPENGRAPH_META_VAR_CONTENT_TYPES_ENABLED);
     variable_del(OPENGRAPH_META_VAR_SITE_NAME);
+    variable_del(OPENGRAPH_META_VAR_OPTIONAL_TAGS);
     $types = node_get_types();
     foreach ($types as $id => $d) {
       variable_del(OPENGRAPH_META_VAR_CONTENT_TYPE_.$id);
