@@ -30,6 +30,10 @@ class OpenGraphMeta {
   const POST_CODE = 'postal-code';
   const COUNTRY_NAME = 'country-name';
 
+  // Contact tags
+  const EMAIL = 'email';
+  const PHONE_NUMBER = 'phone_number';
+  const FAX_NUMBER = 'fax_number';
 
   /** Db field name for optional tags (not to be used by external code) */
   const __OPTIONAL_DB_FIELD = 'optional';
@@ -75,6 +79,9 @@ class OpenGraphMeta {
         self::REGION => '',
         self::POST_CODE => '',
         self::COUNTRY_NAME => '',
+        self::EMAIL => '',
+        self::PHONE_NUMBER => '',
+        self::FAX_NUMBER => '',
       );
     }
     return $defaults;

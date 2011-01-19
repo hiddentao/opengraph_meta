@@ -90,7 +90,7 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
     // Location stuff
     $form['opengraph_meta']['location'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Open Graph Location information'),
+      '#title' => t('Open Graph Location tags'),
       '#description' => t('Here you can specify the location information.'),
       '#tree' => TRUE,
       '#collapsible' => TRUE,
@@ -108,6 +108,31 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
     );
     foreach ($fields as $f => $i) {
       $form['opengraph_meta']['location'][$f] = array(
+        '#title' => t($i[0]),
+        '#type' => 'textfield',
+        '#maxlength' => 255,
+        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[$f] : '',
+        '#description' => t($i[1]),
+      );
+    }
+
+    // Contact stuff
+    $form['opengraph_meta']['contact'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Open Graph Contact tags'),
+      '#description' => t('Here you can specify the contact information.'),
+      '#tree' => TRUE,
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#weight' => 100,
+    );
+    $fields = array(
+      OpenGraphMeta::EMAIL => array('Email', ''),
+      OpenGraphMeta::PHONE_NUMBER => array('Phone number', ''),
+      OpenGraphMeta::FAX_NUMBER => array('Fax number', ''),
+    );
+    foreach ($fields as $f => $i) {
+      $form['opengraph_meta']['contact'][$f] = array(
         '#title' => t($i[0]),
         '#type' => 'textfield',
         '#maxlength' => 255,
@@ -134,6 +159,7 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
     }
   }
 }
+
 
 
 /**
