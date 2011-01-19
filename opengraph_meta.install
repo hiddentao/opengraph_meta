@@ -19,6 +19,23 @@ function opengraph_meta_update_6001(){
 }
 
 
+/**
+ * Add an 'optional_tags' field for additional tags.
+ * @see http://drupal.org/node/983512
+ */
+function opengraph_meta_update_6002(){
+  $result = array();
+  db_add_field($result, OPENGRAPH_META_TABLE, OpenGraphMeta::__OPTIONAL_DB_FIELD, array(
+    'type' => 'text',
+    'not null' => FALSE,
+    'default' => '',
+    'serialize' => TRUE,
+  ));
+  return $result;
+}
+
+
+
 function opengraph_meta_schema(){
     $schema[OPENGRAPH_META_TABLE] = array(
       'description' => 'Stores Open Graph meta tag info useful for when sharing nodes on social networking sites, e.g. Facebook.',
@@ -51,6 +68,12 @@ function opengraph_meta_schema(){
           'length' => '255',
           'not null' => TRUE,
           'default' => '',
+        ),
+        OpenGraphMeta::__OPTIONAL_DB_FIELD => array(
+          'type' => 'text',
+          'not null' => FALSE,
+          'default' => '',
+          'serialize' => TRUE,
         ),
       ),
       'primary key' => array('nid'),

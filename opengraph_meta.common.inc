@@ -21,6 +21,20 @@ class OpenGraphMeta {
   const SITE_NAME = 'site_name';
   const TYPE = 'type';
 
+  // Location tags
+  const LATITUDE = 'latitude';
+  const LONGITUDE = 'longitude';
+  const STREET_ADDRESS = 'street_address';
+  const LOCALITY = 'locality';
+  const REGION = 'region';
+  const POST_CODE = 'postal-code';
+  const COUNTRY_NAME = 'country-name';
+
+
+  /** Db field name for optional tags (not to be used by external code) */
+  const __OPTIONAL_DB_FIELD = 'optional';
+
+  
   /** Singleton instance. */
   private static $instance = NULL;
 
@@ -45,8 +59,30 @@ class OpenGraphMeta {
     return $instance;
   }
 
+
   /**
-   * Get default values for all meta tags.
+   * Get default values for all meta tags (including optional ones).
+   * @param $node a node object. If provided then defaults will be tailored to this node.
+   */
+  public function get_og_optional_tag_defaults($node = NULL) {
+    static $defaults = array();
+    if (empty($defaults)) {
+      $defaults = array(
+        self::LATITUDE => '',
+        self::LONGITUDE => '',
+        self::STREET_ADDRESS => '',
+        self::LOCALITY => '',
+        self::REGION => '',
+        self::POST_CODE => '',
+        self::COUNTRY_NAME => '',
+      );
+    }
+    return $defaults;
+  }
+
+
+  /**
+   * Get default values for all meta tags (including optional ones).
    * @param $node a node object. If provided then defaults will be tailored to this node.
    */
   private function get_og_tag_defaults($node = NULL) {
@@ -60,22 +96,21 @@ class OpenGraphMeta {
         self::TYPE => '',
       );
     }
- 
-    $defaults[self::SITE_NAME] = $this->settings_obj->get(OPENGRAPH_META_VAR_SITE_NAME, $this->settings_obj->get('site_name','Drupal'));
 
-    if (empty($node)) {
-      // if no node given then return cached defaults
-      return $defaults;
-    } else {
+    $ret = array_merge($defaults, $this->get_og_optional_tag_defaults($node));
+
+    $ret[self::SITE_NAME] = $this->settings_obj->get(OPENGRAPH_META_VAR_SITE_NAME, $this->settings_obj->get('site_name','Drupal'));
+
+    if (!empty($node)) {
       // if node given then override defaults
-      $ret = $defaults;
       $ret[self::TITLE] = $node->title;
       $ret[self::DESCRIPTION] = !empty($node->body) ? mb_substr(strip_tags($node->body),0,200) : $node->title;
       $ret[self::TYPE] = $this->settings_obj->get(OPENGRAPH_META_VAR_CONTENT_TYPE_.$node->type,'');
       $image_paths = $this->harvest_images_from_node($node);
       $ret[self::IMAGE] = !empty($image_paths) ? array_shift($image_paths) : '';
-      return $ret;
     }
+
+    return $ret;
   }
 
 
@@ -140,8 +175,15 @@ class OpenGraphMeta {
       $row = $ret;
     }
 
+    // collapse data tree into 1-D array
+    $collapsed_data = new stdClass(); // needed to work around pass-by-reference deprecation warning for array_walk_recursive
+    $collapsed_data->keys = array();
+    $collapsed_data->values = array();
+    array_walk_recursive($data, create_function('$val, $key, $obj', 'array_push($obj->keys, $key); array_push($obj->values, $val);'), $collapsed_data);
+    $collapsed_data = array_combine($collapsed_data->keys, $collapsed_data->values);
+
     foreach ($this->get_og_tag_defaults() as $field => $_d) {
-      $row->$field = isset($data[$field]) ? $data[$field] : '';
+      $row->$field = isset($collapsed_data[$field]) ? $collapsed_data[$field] : '';
     }
 
     $this->data_obj->update_tags($row, FALSE !== $ret ? 'nid' : array());
@@ -177,8 +219,17 @@ class OpenGraphMeta {
           case self::IMAGE:
             $v = url($v, array('absolute' => TRUE));
             break;
+          case self::TITLE:
           case self::DESCRIPTION:
+          case self::STREET_ADDRESS:
+          case self::LOCALITY:
+          case self::REGION:
+          case self::COUNTRY_NAME:
             $v = htmlspecialchars(htmlspecialchars_decode($v));
+            break;
+          case self::LATITUDE:
+          case self::LONGITUDE:
+            $v = floatval($v);
             break;
         }
         $this->render_obj->add_meta('og:'.$field, $v);
@@ -292,12 +343,32 @@ interface OGMData {
 }
 class OGMDrupalData implements OGMData {
   public function load_tags($nid) {
-    return db_fetch_object(db_query("SELECT * FROM {".OPENGRAPH_META_TABLE."} WHERE nid = %d", $nid));
+    $ret = db_fetch_object(db_query("SELECT * FROM {".OPENGRAPH_META_TABLE."} WHERE nid = %d", $nid));
+    if (!empty($ret)) {
+      // get optional field value as array
+      $optional_db_field_name = OpenGraphMeta::__OPTIONAL_DB_FIELD;
+      $optionals = !empty($ret->$optional_db_field_name) ? unserialize($ret->$optional_db_field_name) : array();
+      // extract optional fields
+      foreach (OpenGraphMeta::instance()->get_og_optional_tag_defaults() as $tag => $dv) {
+        $ret->$tag = !empty($optionals[$tag]) ? $optionals[$tag] : $dv;
+      }
+    }
+    return $ret;
   }
   public function delete_tags($nid) {
     db_query("DELETE FROM {".OPENGRAPH_META_TABLE."} WHERE nid = %d", $nid);
   }
   public function update_tags($field_data_including_nid, $primary_key = array()) {
+    // push optional fields into special db field
+    $optionals = array();
+    foreach (OpenGraphMeta::instance()->get_og_optional_tag_defaults() as $tag => $dv) {
+      if (!empty($field_data_including_nid->$tag)) {
+        $optionals[$tag] = $field_data_including_nid->$tag;
+      }
+    }
+    $optional_db_field_name = OpenGraphMeta::__OPTIONAL_DB_FIELD;
+    $field_data_including_nid->$optional_db_field_name = $optionals;
+
     drupal_write_record(OPENGRAPH_META_TABLE, $field_data_including_nid, $primary_key);
   }
 }

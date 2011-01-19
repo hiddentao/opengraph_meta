@@ -87,6 +87,35 @@ function opengraph_meta_form_alter(&$form, $form_state, $form_id) {
       ),
     );
 
+    // Location stuff
+    $form['opengraph_meta']['location'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Open Graph Location information'),
+      '#description' => t('Here you can specify the location information.'),
+      '#tree' => TRUE,
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#weight' => 100,
+    );
+    $fields = array(
+      OpenGraphMeta::LATITUDE => array('Latitude', 'Geographical latitude as a decimal number.'),
+      OpenGraphMeta::LONGITUDE => array('Longitude', 'Geographical longitude as a decimal number.'),
+      OpenGraphMeta::STREET_ADDRESS => array('Street address', 'Local street address.'),
+      OpenGraphMeta::LOCALITY => array('Locality', 'E.g. town or city.'),
+      OpenGraphMeta::REGION => array('Region', 'Region within country, e.g. a county.'),
+      OpenGraphMeta::POST_CODE => array('Post code', 'Postal code.'),
+      OpenGraphMeta::COUNTRY_NAME => array('Country', 'Full country name.'),
+    );
+    foreach ($fields as $f => $i) {
+      $form['opengraph_meta']['location'][$f] = array(
+        '#title' => t($i[0]),
+        '#type' => 'textfield',
+        '#maxlength' => 255,
+        '#default_value' => !empty($node->opengraph_meta) ? $node->opengraph_meta[$f] : '',
+        '#description' => t($i[1]),
+      );
+    }
+
     // if we have images in this node then show thumbnail selector
     $image_paths = OpenGraphMeta::instance()->harvest_images_from_node($node);
     if (!empty($image_paths)) {
