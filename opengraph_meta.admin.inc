@@ -114,7 +114,6 @@ function opengraph_meta_settings_form_submit($form, &$form_state) {
   foreach (_opengraph_meta_contact_form_fields() as $f => $info) {
     $options[$f] = $values['contact'][$f];
   }
-  error_log(print_r($options,true));
   variable_set(OPENGRAPH_META_VAR_OPTIONAL_TAGS, $options);
 
   // success
